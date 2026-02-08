@@ -7,13 +7,30 @@ let lastScroll = 0;
 
 window.addEventListener('scroll', () => {
     const currentScroll = window.pageYOffset;
-    
+
+    // Navbar scroll effect
     if (currentScroll > 50) {
         navbar.classList.add('scrolled');
     } else {
         navbar.classList.remove('scrolled');
     }
-    
+
+    // Parallax effect for hero elements
+    const parallaxElements = document.querySelectorAll('.gradient-orb');
+    parallaxElements.forEach((el, index) => {
+        const speed = 0.5 + (index * 0.1);
+        const yPos = -(currentScroll * speed);
+        el.style.transform = `translateY(${yPos}px)`;
+    });
+
+    // Parallax for floating cards
+    const floatingCards = document.querySelectorAll('.floating-card');
+    floatingCards.forEach((card, index) => {
+        const speed = 0.3 + (index * 0.1);
+        const yPos = -(currentScroll * speed);
+        card.style.transform = `translateY(${yPos}px)`;
+    });
+
     lastScroll = currentScroll;
 });
 
@@ -71,11 +88,18 @@ const observerOptions = {
 const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry, index) => {
         if (entry.isIntersecting) {
-            // Add staggered delay for elements in the same container
-            const delay = index * 100;
-            setTimeout(() => {
-                entry.target.classList.add('visible');
-            }, delay);
+            if (entry.target.classList.contains('hero-stats')) {
+                const statNumbers = entry.target.querySelectorAll('.stat-number');
+                statNumbers.forEach(stat => {
+                    animateCounter(stat);
+                });
+            } else {
+                // Add staggered delay for elements in the same container
+                const delay = index * 100;
+                setTimeout(() => {
+                    entry.target.classList.add('visible');
+                }, delay);
+            }
             
             // Unobserve after animation to prevent re-triggering
             observer.unobserve(entry.target);
@@ -84,120 +108,57 @@ const observer = new IntersectionObserver((entries) => {
 }, observerOptions);
 
 // Observe all elements that need animation
-const animatedElements = document.querySelectorAll('.feature-card, .showcase-item, .testimonial-card');
+const animatedElements = document.querySelectorAll('.feature-card, .showcase-item, .testimonial-card, .hero-stats');
 animatedElements.forEach(el => observer.observe(el));
 
 // ========================================
 // Counter Animation for Stats
 // ========================================
 
-function animateCounter(element, target, duration = 2000, decimals = 0) {
+function animateCounter(element) {
+    const text = element.textContent;
+    const hasPlus = text.includes('+');
+    const hasStar = text.includes('★');
+    
+    let target;
+    let suffix = '';
+    
+    if (hasPlus) {
+        target = parseFloat(text.replace(/[^0-9.]/g, ''));
+        suffix = hasStar ? '★' : (text.includes('M') ? 'M+' : (text.includes('K') ? 'K+' : '+'));
+    } else if (hasStar) {
+        target = parseFloat(text.replace(/[^0-9.]/g, ''));
+        suffix = '★';
+    } else {
+        target = parseFloat(text.replace(/[^0-9.]/g, ''));
+        suffix = text.replace(/[0-9.]/g, '');
+    }
+    
     let start = 0;
-    const increment = target / (duration / 16);
-    const isFloat = target % 1 !== 0;
+    const increment = target / (2000 / 16);
+    const decimals = target % 1 !== 0 ? 1 : 0;
     
     const updateCounter = () => {
         start += increment;
         
         if (start < target) {
-            if (isFloat) {
-                element.textContent = start.toFixed(decimals);
-            } else {
-                element.textContent = Math.floor(start).toLocaleString();
-            }
+            element.textContent = start.toFixed(decimals) + suffix;
             requestAnimationFrame(updateCounter);
         } else {
-            if (isFloat) {
-                element.textContent = target.toFixed(decimals);
-            } else {
-                element.textContent = target.toLocaleString();
-            }
+            element.textContent = target.toFixed(decimals) + suffix;
         }
     };
     
     updateCounter();
 }
 
-// ========================================
-// Stats Counter Observer
-// ========================================
 
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const statNumbers = entry.target.querySelectorAll('.stat-number');
-            
-            statNumbers.forEach(stat => {
-                const text = stat.textContent;
-                const hasPlus = text.includes('+');
-                const hasStar = text.includes('★');
-                
-                let target;
-                let suffix = '';
-                
-                if (hasPlus) {
-                    target = parseFloat(text.replace(/[^0-9.]/g, ''));
-                    suffix = hasStar ? '★' : (text.includes('M') ? 'M+' : (text.includes('K') ? 'K+' : '+'));
-                } else if (hasStar) {
-                    target = parseFloat(text.replace(/[^0-9.]/g, ''));
-                    suffix = '★';
-                } else {
-                    target = parseFloat(text.replace(/[^0-9.]/g, ''));
-                    suffix = text.replace(/[0-9.]/g, '');
-                }
-                
-                // Animate the counter
-                let start = 0;
-                const increment = target / (2000 / 16);
-                const decimals = target % 1 !== 0 ? 1 : 0;
-                
-                const updateCounter = () => {
-                    start += increment;
-                    
-                    if (start < target) {
-                        stat.textContent = start.toFixed(decimals) + suffix;
-                        requestAnimationFrame(updateCounter);
-                    } else {
-                        stat.textContent = target.toFixed(decimals) + suffix;
-                    }
-                };
-                
-                updateCounter();
-            });
-            
-            statsObserver.unobserve(entry.target);
-        }
-    });
-}, { threshold: 0.5 });
-
-// Observe hero stats
-const heroStats = document.querySelector('.hero-stats');
-if (heroStats) {
-    statsObserver.observe(heroStats);
-}
 
 // ========================================
 // Parallax Effect for Hero Elements
 // ========================================
 
-window.addEventListener('scroll', () => {
-    const scrolled = window.pageYOffset;
-    const parallaxElements = document.querySelectorAll('.gradient-orb');
-    
-    parallaxElements.forEach((el, index) => {
-        const speed = 0.5 + (index * 0.1);
-        const yPos = -(scrolled * speed);
-        el.style.transform = `translateY(${yPos}px)`;
-    });
-    
-    // Parallax for floating cards
-    const floatingCards = document.querySelectorAll('.floating-card');
-    floatingCards.forEach((card, index) => {
-        const speed = 0.3 + (index * 0.1);
-        const yPos = -(scrolled * speed);
-        card.style.transform = `translateY(${yPos}px)`;
-    });
-});
+
 
 // ========================================
 // Mouse Move Effect for Phone
